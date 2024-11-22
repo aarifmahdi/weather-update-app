@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch my_program with GCC",
+            "type": "cppvsdbg",  // Visual Studio Debugger for Windows
+            "request": "launch",
+            "program": "${workspaceFolder}/my_program.exe",  // Path to the compiled executable
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "externalTerminal",  // Use an external terminal to view program output
+            "preLaunchTask": "gcc build",  // Ensure this matches your task label in tasks.json
+            "logging": {
+                "moduleLoad": false,
+                "trace": true
+            }
+        }
+    ]
+}

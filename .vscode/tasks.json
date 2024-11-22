@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "gcc build",  // Task name to be referenced in launch.json
+            "type": "shell",
+            "command": "gcc",
+            "args": [
+                "-g",
+                "-o",
+                "my_program.exe",   // Name of the output file
+                "main.c",            // Your source file
+                "-ljson-c",          // Linking json-c library
+                "-lcurl"             // Linking curl library
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Generated task for compiling C program"
+        }
+    ]
+}
