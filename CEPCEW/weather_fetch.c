@@ -40,21 +40,17 @@ int get_weather_data(const char *url, char *response) {
     curl_easy_cleanup(curl);
     curl_global_cleanup();
 
-    // Print raw JSON data to the terminal
-    printf("Received Data: %s\n", response);
-
     return 0;
 }
 
 // Parsing JSON data and updating the WeatherData struct
 int parse_json(const char *json_data, WeatherData *data) {
     struct json_object *parsed_json;
-    struct json_object *location;
+    struct json_object *sys;
     struct json_object *current;
     struct json_object *temp;
     struct json_object *humid;
     struct json_object *city;
-    struct json_object *sys;
     struct json_object *country;
 
     parsed_json = json_tokener_parse(json_data);
@@ -63,26 +59,17 @@ int parse_json(const char *json_data, WeatherData *data) {
         return 1;
     }
 
-    city = json_object_object_get(parsed_json, "name");  // Extracting city name
-    sys = json_object_object_get(parsed_json, "sys");   // Extracting 'sys' object (contains country info)
-    country = json_object_object_get(sys, "country");   // Extracting country field
-
-    // Extract weather data
+    city = json_object_object_get(parsed_json, "name");
+    sys = json_object_object_get(parsed_json, "sys");
+    country = json_object_object_get(sys, "country");
     current = json_object_object_get(parsed_json, "main");
     temp = json_object_object_get(current, "temp");
     humid = json_object_object_get(current, "humidity");
 
-    // Copy the parsed data into the WeatherData struct
     strcpy(data->city, json_object_get_string(city));
     strcpy(data->country, json_object_get_string(country));
     data->temperature = json_object_get_double(temp);
     data->humidity = json_object_get_int(humid);
-
-    // Print parsed data to the terminal
-    printf("City: %s\n", data->city);
-    printf("Country: %s\n", data->country);
-    printf("Temperature: %.2f°C\n", data->temperature);
-    printf("Humidity: %d%%\n", data->humidity);
 
     return 0;
 }
@@ -108,13 +95,13 @@ void check_alerts(const WeatherData *data) {
     if (data->temperature > 30.0) {
         syslog(LOG_ALERT, "High temperature alert in %s! Temperature: %.2f°C", data->city, data->temperature);
         snprintf(command, sizeof(command), "notify-send 'Weather Alert' 'High temperature in %s! Temperature: %.2f°C'", data->city, data->temperature);
-        system(command); // Execute the notification command
+        system(command);
     }
 
     if (data->humidity < 20) {
         syslog(LOG_WARNING, "Low humidity alert in %s! Humidity: %d%%", data->city, data->humidity);
         snprintf(command, sizeof(command), "notify-send 'Weather Alert' 'Low humidity in %s! Humidity: %d%%'", data->city, data->humidity);
-        system(command); // Execute the notification command
+        system(command);
     }
 
     closelog();
@@ -138,8 +125,14 @@ int main() {
 
     if (get_weather_data(url, response) == 0) {
         if (parse_json(response, data) == 0) {
-            write_to_file("weather_data.txt", data); 
-            check_alerts(data); 
+            // Print only the required fields
+            printf("Country: %s\n", data->country);
+            printf("City: %s\n", data->city);
+            printf("Temperature: %.2f°C\n", data->temperature);
+            printf("Humidity: %d%%\n", data->humidity);
+
+            write_to_file("weather_data.txt", data);
+            check_alerts(data);
         } else {
             fprintf(stderr, "Error parsing JSON data\n");
         }
@@ -152,4 +145,5 @@ int main() {
 
     return 0;
 }
+
 
