@@ -4,16 +4,15 @@
 #include <curl/curl.h>
 #include <json-c/json.h>
 #include <syslog.h>
-#include <stdlib.h>  
-#include "weather(header).h" 
+#include "weather(header).h"
 
 size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-    ((char *)userp)[size * nmemb] = '\0'; // Null to terminate the  string that is recieved
+    ((char *)userp)[size * nmemb] = '\0'; // Null-terminate the received string
     strcat((char *)userp, contents);
     return size * nmemb;
 }
 
-//  fetching weather data using CURL
+// Fetching weather data using CURL
 int get_weather_data(const char *url, char *response) {
     CURL *curl;
     CURLcode res;
@@ -41,12 +40,13 @@ int get_weather_data(const char *url, char *response) {
     curl_easy_cleanup(curl);
     curl_global_cleanup();
 
-   
+    // Print raw JSON data to the terminal
+    printf("Received Data: %s\n", response);
 
     return 0;
 }
 
-// parsing the  JSON data and updating the WeatherData struct
+// Parsing JSON data and updating the WeatherData struct
 int parse_json(const char *json_data, WeatherData *data) {
     struct json_object *parsed_json;
     struct json_object *location;
@@ -63,7 +63,6 @@ int parse_json(const char *json_data, WeatherData *data) {
         return 1;
     }
 
-   
     city = json_object_object_get(parsed_json, "name");  // Extracting city name
     sys = json_object_object_get(parsed_json, "sys");   // Extracting 'sys' object (contains country info)
     country = json_object_object_get(sys, "country");   // Extracting country field
@@ -74,20 +73,21 @@ int parse_json(const char *json_data, WeatherData *data) {
     humid = json_object_object_get(current, "humidity");
 
     // Copy the parsed data into the WeatherData struct
-    strcpy(data->city, json_object_get_string(city));       
-    strcpy(data->country, json_object_get_string(country)); 
-    data->temperature = json_object_get_double(temp);       
-    data->humidity = json_object_get_int(humid);            
+    strcpy(data->city, json_object_get_string(city));
+    strcpy(data->country, json_object_get_string(country));
+    data->temperature = json_object_get_double(temp);
+    data->humidity = json_object_get_int(humid);
 
-    // Print parsed data (city, country, temperature, humidity)
-    printf("City: %s\n", data->city);                     
-    printf("Country: %s\n", data->country);                 
-    printf("Temperature: %.2f°C\n", data->temperature);    
-    printf("Humidity: %d%%\n", data->humidity);            
+    // Print parsed data to the terminal
+    printf("City: %s\n", data->city);
+    printf("Country: %s\n", data->country);
+    printf("Temperature: %.2f°C\n", data->temperature);
+    printf("Humidity: %d%%\n", data->humidity);
 
     return 0;
 }
 
+// Writing weather data to a file
 void write_to_file(const char *filename, const WeatherData *data) {
     FILE *file = fopen(filename, "a");
     if (file != NULL) {
@@ -99,19 +99,22 @@ void write_to_file(const char *filename, const WeatherData *data) {
     }
 }
 
-// Function to check alerts, log to syslog, and send desktop notifications
+// Checking alerts, logging to syslog, and sending desktop notifications
 void check_alerts(const WeatherData *data) {
     openlog("WeatherAlert", LOG_PID | LOG_CONS, LOG_USER);
 
+    char command[256]; // Buffer to hold the command string
+
     if (data->temperature > 30.0) {
         syslog(LOG_ALERT, "High temperature alert in %s! Temperature: %.2f°C", data->city, data->temperature);
-        system("notify-send 'Weather Alert' 'High temperature in %s! Temperature: %.2f°C'" data->city data->temperature);
+        snprintf(command, sizeof(command), "notify-send 'Weather Alert' 'High temperature in %s! Temperature: %.2f°C'", data->city, data->temperature);
+        system(command); // Execute the notification command
     }
 
-    
     if (data->humidity < 20) {
         syslog(LOG_WARNING, "Low humidity alert in %s! Humidity: %d%%", data->city, data->humidity);
-        system("notify-send 'Weather Alert' 'Low humidity in %s! Humidity: %d%%'" data->city data->humidity);
+        snprintf(command, sizeof(command), "notify-send 'Weather Alert' 'Low humidity in %s! Humidity: %d%%'", data->city, data->humidity);
+        system(command); // Execute the notification command
     }
 
     closelog();
@@ -149,3 +152,4 @@ int main() {
 
     return 0;
 }
+
